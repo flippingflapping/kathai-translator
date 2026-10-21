@@ -4,9 +4,12 @@ A mobile-first web app. Tap **English** or **தமிழ்**, speak, and the p
 
 ## How it works
 
-1. The mic records your speech (MediaRecorder). It stops by itself after about 1.5 s of quiet, or when you tap again.
-2. The recording goes to **Gemini** (`gemini-3.8-flash`) in one call that both transcribes and translates. The prompt carries a Jaffna dialect guide (ஓம், கதை, -ங்கோ endings, இஞ்ச, கெதியா …) so the Tamil sounds like Jaffna, not Chennai or textbook Tamil.
-3. The translation goes to **Gemini TTS** (`gemini-3.8-flash-tts`) with a "Jaffna Tamil accent" style, and the WAV plays through the phone speaker.
+1. The mic records your speech (MediaRecorder). It stops by itself after a short pause (0.9 s by default, adjustable), or when you tap again. The connection to Google is opened while you are still talking.
+2. The recording goes to **Gemini** (`gemini-3.8-flash`, minimal thinking) in one streamed call that both transcribes and translates. The prompt carries a Jaffna dialect guide (ஓம், கதை, -ங்கோ endings, இஞ்ச, கெதியா …) so the Tamil sounds like Jaffna, not Chennai or textbook Tamil.
+3. As soon as the translation text arrives (before the rest of the reply), it goes to **Gemini TTS** (`gemini-3.8-flash-tts`) with a "Jaffna Tamil accent" style. Speech is streamed and starts playing with the first piece of audio.
+4. Each bubble shows timings: seconds from the end of recording to the text, and to the first sound.
+
+If streaming fails before anything arrives, each call falls back to a single plain request.
 
 There is no server. The page calls the Gemini API directly from the browser with **your own API key**, which is stored only in that browser's local storage.
 
@@ -34,8 +37,9 @@ Phones only allow the mic on **https** pages (or localhost), so test on a phone 
 | `js/gemini.js` | Gemini adapter: `translateSpeech()` and `synthesize()` |
 | `js/fake-provider.js` | Same interface with canned answers (`?demo`) |
 | `js/recorder.js` | Mic capture and pause detection |
-| `js/audio.js` | Speaker playback, mobile audio unlock |
+| `js/audio.js` | Speaker playback (whole clips and streamed pieces), mobile audio unlock |
 | `js/wav.js` | PCM/WAV/base64 helpers |
+| `js/sse.js` | Reads streamed replies; spots the finished translation in a partial reply |
 | `js/app.js` | UI wiring |
 
 Swapping Gemini for another provider means writing one new file with the same two functions.

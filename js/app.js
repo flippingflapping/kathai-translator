@@ -16,6 +16,7 @@ const DEFAULTS = {
   voice_en: LANGUAGES.en.defaultVoice,
   'voice_ta-jaffna': LANGUAGES['ta-jaffna'].defaultVoice,
   autoStop: true,
+  pauseMs: '900',
   autoPlay: true,
   showRomanized: true,
   translateModel: DEFAULT_MODELS.translate,
@@ -91,19 +92,55 @@ function addBubble(side) {
   return el;
 }
 
-async function speak(el, msg) {
-  if (!msg.wav) {
-    setStatus('Getting voice…', 'working');
-    msg.wav = await provider.synthesize({ text: msg.translation, lang: msg.to, voice: settings[`voice_${msg.to}`] });
-  }
+// Make (if needed) and play the voice for a message. New voices stream: the
+// first piece plays while the rest is still being made. Replays use the saved clip.
+async function speak(el, msg, timing) {
   el.classList.add('speaking');
-  setStatus('Speaking…', 'speaking');
   try {
-    await speaker.play(msg.wav);
+    if (msg.wav) {
+      setStatus('Speaking…', 'speaking');
+      await speaker.play(msg.wav);
+      return;
+    }
+    setStatus('Getting voice…', 'working');
+    const player = speaker.createStreamPlayer();
+    const wav = await provider.synthesize({
+      text: msg.translation,
+      lang: msg.to,
+      voice: settings[`voice_${msg.to}`],
+      onChunk: (pcm) => {
+        if (!player.received) {
+          setStatus('Speaking…', 'speaking');
+          if (timing) { timing.voice = performance.now(); showTiming(el, timing); }
+        }
+        player.push(pcm);
+      },
+    }).catch((err) => { player.stop(); throw err; });
+    msg.wav = wav;
+    if (player.received) {
+      player.end();
+      await player.done;
+    } else {
+      // The provider answered in one piece instead of streaming.
+      player.stop();
+      if (timing) { timing.voice = performance.now(); showTiming(el, timing); }
+      setStatus('Speaking…', 'speaking');
+      await speaker.play(wav);
+    }
   } finally {
     el.classList.remove('speaking');
+    if (!recording && statusEl.dataset.mode !== 'listening') setStatus('Ready');
   }
-  if (!recording) setStatus('Ready');
+}
+
+// Seconds from the end of recording to the translation text, and to the
+// first sound. (The pause-detection wait before that is not included.)
+function showTiming(el, t) {
+  const sec = (ms) => `${(ms / 1000).toFixed(1)}s`;
+  const parts = [];
+  if (t.text) parts.push(`text ${sec(t.text - t.start)}`);
+  if (t.voice) parts.push(`voice ${sec(t.voice - t.start)}`);
+  $('.timing', el).textContent = parts.join(' · ');
 }
 
 function showResult(el, msg) {
@@ -111,10 +148,11 @@ function showResult(el, msg) {
   t.textContent = msg.translation;
   t.lang = LANGUAGES[msg.to].htmlLang;
   const h = $('.heard', el);
-  h.textContent = msg.heard;
+  h.textContent = msg.heard || '';
   h.lang = LANGUAGES[msg.from].htmlLang;
-  $('.romanized', el).textContent = msg.romanized;
+  $('.romanized', el).textContent = msg.romanized || '';
   $('.replay', el).hidden = false;
+  el.classList.remove('pending');
   el.scrollIntoView({ behavior: 'smooth', block: 'end' });
 }
 
@@ -122,12 +160,32 @@ async function translate(el, msg) {
   el.classList.add('pending');
   el.classList.remove('failed', 'missed');
   $('.retry', el).hidden = true;
+  $('.timing', el).textContent = '';
   setStatus('Translating…', 'working');
+  const timing = { start: performance.now() };
+  let speaking = null;
+
+  // Called as soon as the translation is known, which with streaming is
+  // before the transcript and pronunciation guide have finished arriving.
+  const begin = (translation) => {
+    if (speaking) return;
+    msg.translation = translation;
+    timing.text = performance.now();
+    showResult(el, msg);
+    showTiming(el, timing);
+    if (!settings.autoPlay) return;
+    speaking = speak(el, msg, timing).catch((err) => {
+      console.error(err);
+      setStatus(`No voice: ${err.message || 'speech failed'}. Tap Play to retry.`, 'error');
+    });
+  };
+
   let r;
   try {
-    r = await provider.translateSpeech({ audio: msg.audio, mimeType: msg.mimeType, from: msg.from, to: msg.to });
+    r = await provider.translateSpeech({ audio: msg.audio, mimeType: msg.mimeType, from: msg.from, to: msg.to, onTranslation: begin });
   } catch (err) {
     console.error(err);
+    if (speaking) return; // the voice is already going; keep what we have
     el.classList.remove('pending');
     el.classList.add('failed');
     $('.translation', el).textContent = err.message || 'Something went wrong.';
@@ -142,15 +200,13 @@ async function translate(el, msg) {
     setStatus('Ready');
     return;
   }
+  const early = msg.translation;
   Object.assign(msg, r);
+  if (early && early !== r.translation) msg.translation = early; // keep text matching the voice
   showResult(el, msg);
-  if (!settings.autoPlay) return setStatus('Ready');
-  try {
-    await speak(el, msg);
-  } catch (err) {
-    console.error(err);
-    setStatus(`No voice: ${err.message || 'speech failed'}. Tap Play to retry.`, 'error');
-  }
+  begin(msg.translation);
+  if (speaking) await speaking;
+  else if (statusEl.dataset.mode === 'working') setStatus('Ready');
 }
 
 async function onMic(side) {
@@ -167,10 +223,12 @@ async function onMic(side) {
   }
 
   speaker.prepareForRecording();
+  provider.warmUp(); // open the connection while the person is still talking
   let handle;
   try {
     handle = await record({
       autoStop: settings.autoStop,
+      silenceMs: Number(settings.pauseMs) || 900,
       onLevel: (l) => { meterFill.style.transform = `scaleX(${l.toFixed(3)})`; },
     });
   } catch (err) {
