@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Kathai Translator</title>
+  <meta name="description" content="Speak English or Jaffna Tamil and hear it translated out loud.">
+  <meta name="theme-color" content="#14122a" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#fbf6ec" media="(prefers-color-scheme: light)">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Kathai">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Tamil:wght@400;600&family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <h1>Kathai <span lang="ta">கதை</span></h1>
+      <p>English ⇄ <span lang="ta">யாழ்ப்பாணத் தமிழ்</span></p>
+    </div>
+    <button id="settingsBtn" class="icon-btn" aria-label="Settings">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
+    </button>
+  </header>
+
+  <main id="log" class="log" aria-live="polite">
+    <div id="empty" class="empty">
+      <p class="empty-lead">Tap your language, speak, and the phone says it in the other language.</p>
+      <ol>
+        <li>Tap <b>English</b> or <b lang="ta">தமிழ்</b>.</li>
+        <li>Speak. It stops by itself when you pause.</li>
+        <li>Hold the phone up so the other person can hear and read.</li>
+      </ol>
+      <p id="keyHint" class="key-hint" hidden>First, add your Gemini API key in <button class="link" data-open-settings>Settings</button>.</p>
+    </div>
+  </main>
+
+  <footer class="controls">
+    <div class="status" id="status" role="status">
+      <span class="meter" aria-hidden="true"><span id="meterFill"></span></span>
+      <span id="statusText">Ready</span>
+    </div>
+    <div class="mics">
+      <button class="mic" data-side="en" aria-label="Speak English">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>
+        <span class="mic-label">English</span>
+        <span class="mic-sub">speak English</span>
+      </button>
+      <button class="mic" data-side="ta-jaffna" aria-label="தமிழில் கதையுங்கோ">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>
+        <span class="mic-label" lang="ta">தமிழ்</span>
+        <span class="mic-sub" lang="ta">கதையுங்கோ</span>
+      </button>
+    </div>
+  </footer>
+
+  <dialog id="settings" class="sheet">
+    <form method="dialog" id="settingsForm">
+      <h2>Settings</h2>
+      <label class="field">
+        <span>Gemini API key</span>
+        <input type="password" name="apiKey" autocomplete="off" spellcheck="false" placeholder="Paste your key">
+        <small>Kept only in this browser and sent only to Google. Get one at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a>.</small>
+      </label>
+      <div class="row">
+        <label class="field"><span>English voice</span><select name="voice_en"></select></label>
+        <label class="field"><span>Tamil voice</span><select name="voice_ta-jaffna"></select></label>
+      </div>
+      <label class="check"><input type="checkbox" name="autoStop"> Stop listening when I pause</label>
+      <label class="check"><input type="checkbox" name="autoPlay"> Speak translations out loud</label>
+      <label class="check"><input type="checkbox" name="showRomanized"> Show Tamil in English letters</label>
+      <details>
+        <summary>Advanced</summary>
+        <label class="field"><span>Translation model</span><input name="translateModel" spellcheck="false"></label>
+        <label class="field"><span>Speech model</span><input name="ttsModel" spellcheck="false"></label>
+      </details>
+      <div class="actions">
+        <button type="button" id="clearBtn" class="ghost">Clear conversation</button>
+        <button value="save" class="primary">Done</button>
+      </div>
+    </form>
+  </dialog>
+
+  <template id="bubbleTpl">
+    <article class="bubble">
+      <p class="translation"></p>
+      <p class="romanized"></p>
+      <p class="heard"></p>
+      <div class="bubble-foot">
+        <span class="meta"></span>
+        <button class="replay" hidden aria-label="Play again">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+          Play
+        </button>
+        <button class="retry" hidden>Try again</button>
+      </div>
+    </article>
+  </template>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

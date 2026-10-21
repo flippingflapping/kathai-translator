@@ -1,0 +1,10 @@
+{
+  "name": "kathai-translator",
+  "private": true,
+  "type": "module",
+  "description": "Mobile web app: spoken English <-> spoken Jaffna Tamil with Gemini",
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "start": "python3 -m http.server 8080"
+  }
+}

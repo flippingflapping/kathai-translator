@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="112" fill="#14122a"/>
+  <path d="M96 150c0-30 24-54 54-54h132c30 0 54 24 54 54v84c0 30-24 54-54 54h-86l-62 52v-52c-22-4-38-25-38-48z" fill="#7ea6ff"/>
+  <path d="M416 262c0-30-24-54-54-54H230c-30 0-54 24-54 54v84c0 30 24 54 54 54h86l62 52v-52c22-4 38-25 38-48z" fill="#f2a33a"/>
+  <text x="296" y="345" text-anchor="middle" font-family="Noto Sans Tamil, Latha, sans-serif" font-size="110" font-weight="700" fill="#14122a">க</text>
+  <text x="216" y="232" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="100" font-weight="700" fill="#14122a">A</text>
+</svg>
